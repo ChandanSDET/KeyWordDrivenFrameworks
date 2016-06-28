@@ -1,0 +1,39 @@
+# ip pool follows here
+ippool:
+  services:
+    service-ro-8080: "10.230.49.200,10.230.49.201"
+    _duplicate_service-rw-443: "10.230.45.201"
+  lbservers:
+    lbserver-ro-443: "10.230.44.201"
+  csservers:
+    csserver-80,csserver-443: "10.230.44.202"
+    _duplicate_csserver-dr-443: "10.230.45.202"
+dns:
+  service-ro-8080: "atmecs1sltsvc1.test.expertcity.com,atmecs1sltsvc2.test.expertcity.com"
+  _duplicate_service-rw-443: "atmecs2sltsvc-ro.test.expertcity.com"
+  lbserver-ro-443: "atmecs1sltsvc-ro.test.expertcity.com"
+  csserver-80,csserver-443: "atmecs1sltsvc.test.expertcity.com"
+  _duplicate_csserver-dr-443: "atmecs2sltsvc.test.expertcity.com"
+naming:
+  service-ro-8080: "atmecs1sltsvc1.lt-8080,atmecs1sltsvc2.lt-8080"
+  _duplicate_service-rw-443: "atmecs2sltsvc.lt-443"
+  lbserver-ro-443: "lb-atmecs1sltsvc.lt-ro-443"
+  lbserver-rw-443: "lb-atmecs1sltsvc.lt-rw-443"
+  csserver-80: "cs-atmecs1sltsvc.lt-80"
+  csserver-443: "cs-atmecs1sltsvc.lt-443"
+  _duplicate_csserver-dr-443: "cs-atmecs2sltsvc.lt-443"
+ospf:
+  ospfvserver: "csserver-80,csserver-443"
+  ospfvserver-dr: "csserver-dr-443"
+others:
+  env: "slt"
+  stateupdate: "ENABLED"
+  ospf_hostrtgw: "10.230.41.11"
+  ospf_type: "ONE_VSERVER"
+  ospf_metric: 100
+  ospf_dr_hostrtgw: "10.230.41.21"
+  ospf_dr_type: "ONE_VSERVER"
+  ospf_dr_metric: 200
+  certkey_name: "star.lt.ec.com"
+  certkey_dr_name: "star.lt.ec.com"
+

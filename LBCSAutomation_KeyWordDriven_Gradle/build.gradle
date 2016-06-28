@@ -1,0 +1,34 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+	
+    mavenCentral()
+}
+
+dependencies {
+
+	compile 'org.slf4j:slf4j-simple:1.7.6','org.testng:testng:6.9.10','org.seleniumhq.selenium:selenium-java:2.53.0',
+	         'org.apache.poi:poi:3.7','org.apache.xmlbeans:xmlbeans:2.3.0','org.apache.poi:poi-ooxml:3.9','com.relevantcodes:extentreports:2.40','dom4j:dom4j:1.1'
+
+	         
+	         
+	testCompile 'org.slf4j:slf4j-simple:1.7.6','com.relevantcodes:extentreports:2.40','org.testng:testng:6.9.10','org.seleniumhq.selenium:selenium-java:2.53.0',
+				'org.apache.poi:poi:3.7','org.apache.xmlbeans:xmlbeans:2.3.0','org.apache.poi:poi-ooxml:3.9','dom4j:dom4j:1.1'
+
+				
+
+}
+
+ task runTests(type: JavaExec, dependsOn: 'classes') {
+    main = 'org.testng.TestNG'
+    classpath = files(".",
+                      project.sourceSets.main.compileClasspath,
+                      project.sourceSets.test.compileClasspath,
+                      project.sourceSets.main.runtimeClasspath,
+                      project.sourceSets.test.runtimeClasspath)
+    args = ["-parallel",  "none", "-threadcount", "1", "-d", "./build/test-output", "testng.xml"]
+}

@@ -1,0 +1,144 @@
+monitors:
+  - id: atmecs%env%svc-ro-status
+    name: atmecs%env%svc-ro-status
+    type: HTTP-ECV
+    send: "GET /system-status"
+    recv: "Readable=1"
+    lrtm: ENABLED
+    destport: 8080
+
+  - id: atmecs%env%svc-rw-status
+    name: atmecs%env%svc-rw-status
+    type: HTTP-ECV
+    send: "GET /system-status"
+    recv: "Writable=1"
+    lrtm: ENABLED
+    secure: "YES"
+    destport: 443
+
+responderactions:
+  - id: rspact-atmecs%env%svc-http2https
+    name: rspact-atmecs%env%svc-http2https
+    type: "redirect"
+    target: "\"https://\" + \"%csserver-443{dnsname}%\" + http.REQ.URL.PATH_AND_QUERY"
+    bypasssafetycheck: "YES"
+
+responderpolicies:
+  - id: rsppol-atmecs%env%svc-http2https
+    name: rsppol-atmecs%env%svc-http2https
+    rule: "!CLIENT.SSL.IS_SSL || !HTTP.REQ.HOSTNAME.EQ(\"%csserver-443{dnsname}%\")"
+    action: rspact-atmecs%env%svc-http2https
+
+services:
+  - id: service-ro-8080
+    servicetype: HTTP
+    state: ENABLED
+    port: 8080
+    monitor: atmecs%env%svc-ro-status
+    useproxyport: "NO"
+    accessdown: "YES"
+    cip: ENABLED
+    cipheader: ROClientHost
+
+  - id: service-rw-443
+    servicetype: SSL
+    state: ENABLED
+    port: 443
+    monitor: atmecs%env%svc-rw-status
+    useproxyport: "NO"
+    accessdown: "NO"
+    cip: ENABLED
+    cipheader: RWClientHost
+
+lbservers:
+  - id: lbserver-ro-443
+    servicetype: SSL
+    port: 443
+    state: ENABLED
+    certkey: "%certkey_name%"
+    references:
+      - id: service-ro-8080
+      - id: ciphersuite-tight-2010
+        cipheroperation: ORD
+
+  - id: lbserver-rw-443
+    servicetype: SSL
+    state: ENABLED
+    backupvserver: "%lbserver-ro-443%"
+    certkey: "%certkey_name%"
+    references:
+      - id: service-rw-443
+      - id: ciphersuite-tight-2010
+        cipheroperation: ORD
+
+cspolicies:
+  - id: cspol-atmecs%env%svc-readonly
+    name: cspol-atmecs%env%svc-readonly
+    rule: "(HTTP.REQ.HEADER(\"Cache-Control\").EQ(\"no-cache\").NOT) && (HTTP.REQ.METHOD.EQ(\"GET\") || HTTP.REQ.METHOD.EQ(\"HEAD\"))"
+
+  - id: cspol-atmecs%env%svc-readonly-dr
+    name: cspol-atmecs%env%svc-readonly-dr
+    rule: "(HTTP.REQ.HEADER(\"Cache-Control\").EQ(\"no-cache\").NOT) && (HTTP.REQ.METHOD.EQ(\"GET\") || HTTP.REQ.METHOD.EQ(\"HEAD\"))"
+
+sslciphers:
+  - id: ciphersuite-tight-2010
+    name: ciphersuite-tight-2010
+
+csservers:
+  - id: csserver-80
+    servicetype: HTTP
+    port: 80
+    state: ENABLED
+    stateupdate: "%stateupdate%"
+    references:
+      - id: lbserver-rw-443
+      - id: rsppol-atmecs%env%svc-http2https
+        priority: 1
+        gotopriorityexpression: END
+
+  - id: csserver-443
+    servicetype: SSL
+    port: 443
+    state: ENABLED
+    stateupdate: "%stateupdate%"
+    certkey: "%certkey_name%"
+    references:
+      - id: lbserver-ro-443
+        label: cspol-atmecs%env%svc-readonly
+        policyname: cspol-atmecs%env%svc-readonly
+        priority: 10
+      - id: lbserver-rw-443
+      - id: ciphersuite-tight-2010
+        cipheroperation: ORD
+
+  - id: csserver-dr-443
+    servicetype: SSL
+    port: 443
+    state: ENABLED
+    stateupdate: "DISABLED"
+    certkey: "%certkey_dr_name%"
+    references:
+      - id: lbserver-ro-443
+        label: cspol-atmecs%env%svc-readonly-dr
+        policyname: cspol-atmecs%env%svc-readonly-dr
+        priority: 10
+      - id: lbserver-rw-443
+      - id: ciphersuite-tight-2010
+        cipheroperation: ORD
+
+nsips:
+  - id: ospfvserver
+    netmask: 255.255.255.255
+    type: VIP
+    hostroute: "ENABLED"
+    hostrtgw: "%ospf_hostrtgw%"
+    metric: "%ospf_metric%"
+    vserverrhilevel: "%ospf_type%"
+
+  - id: ospfvserver-dr
+    netmask: 255.255.255.255
+    type: VIP
+    hostroute: "ENABLED"
+    hostrtgw: "%ospf_dr_hostrtgw%"
+    metric: "%ospf_dr_metric%"
+    vserverrhilevel: "%ospf_dr_type%"
